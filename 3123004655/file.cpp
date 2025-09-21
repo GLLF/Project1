@@ -3,18 +3,18 @@
 std::string readFileContent(const std::string& filePath) {
     std::ifstream file(filePath, std::ios::binary);
     if (!file.is_open()) {
-        throw std::runtime_error("鏃犳硶鎵撳紑鏂囦欢: " + filePath);
+        throw std::runtime_error("无法打开文件: " + filePath);
     }
     
-    // 鑾峰彇鏂囦欢澶у皬
+    // 获取文件大小
     file.seekg(0, std::ios::end);
     std::streamsize size = file.tellg();
     file.seekg(0, std::ios::beg);
     
-    // 璇诲彇鏂囦欢鍐呭
+    // 读取文件内容
     std::string content(size, '\0');
     if (!file.read(&content[0], size)) {
-        throw std::runtime_error("璇诲彇鏂囦欢澶辫触: " + filePath);
+        throw std::runtime_error("读取文件失败: " + filePath);
     }
     
     file.close();
@@ -24,10 +24,10 @@ std::string readFileContent(const std::string& filePath) {
 void writeResultToFile(const std::string& outputPath, double similarity) {
     std::ofstream outFile(outputPath);
     if (!outFile.is_open()) {
-        throw std::runtime_error("鏃犳硶鍒涘缓杈撳嚭鏂囦欢: " + outputPath);
+        throw std::runtime_error("无法创建输出文件: " + outputPath);
     }
     
-    // 杈撳嚭淇濈暀涓や綅灏忔暟鐨勭浉浼煎害
+    // 输出保留两位小数的相似度
     outFile << std::fixed << std::setprecision(2) << similarity;
     outFile.close();
 }

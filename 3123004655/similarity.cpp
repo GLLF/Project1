@@ -1,14 +1,48 @@
 #include "main.h"
+#include <iostream>
+#include <sstream>
 
 double calculateSimilarity(int lcsLength, int len1, int len2) {
     if (len1 == 0 && len2 == 0) return 1.0;
     if (len1 == 0 || len2 == 0) return 0.0;
     
-    // ä½¿ç”¨å…¬å¼: ç›¸ä¼¼åº¦ = (2 * LCSé•¿åº¦) / (åŸæ–‡é•¿åº¦ + æŠ„è¢­æ–‡é•¿åº¦)
+    // Ê¹ÓÃ¹«Ê½: ÏàËÆ¶È = (2 * LCS³¤¶È) / (Ô­ÎÄ³¤¶È + ³­Ï®ÎÄ³¤¶È)
     return (2.0 * lcsLength) / (len1 + len2);
 }
 
 void printUsage(const char* programName) {
-    std::cerr << "ä½¿ç”¨æ–¹æ³•: " << programName << " [åŸæ–‡æ–‡ä»¶] [æŠ„è¢­ç‰ˆè®ºæ–‡æ–‡ä»¶] [ç­”æ¡ˆæ–‡ä»¶]" << std::endl;
-    std::cerr << "ç¤ºä¾‹: " << programName << " C:\\original.txt C:\\plagiarized.txt C:\\result.txt" << std::endl;
+    std::cerr << "Ê¹ÓÃ·½·¨: " << programName << " [Ô­ÎÄÎÄ¼ş] [³­Ï®°æÂÛÎÄÎÄ¼ş] [´ğ°¸ÎÄ¼ş]" << std::endl;
+    std::cerr << "Ê¾Àı: " << programName << " C:\\original.txt C:\\plagiarized.txt C:\\result.txt" << std::endl;
+}
+
+// ĞÂÔöº¯Êı£ºÉú³ÉÏêÏ¸µÄÏàËÆ¶È±¨¸æ
+std::string generateSimilarityReport(int lcsLength, int len1, int len2, double similarity) {
+    std::stringstream report;
+    
+    report << "ÂÛÎÄ²éÖØ·ÖÎö±¨¸æ" << std::endl;
+    report << "====================" << std::endl;
+    report << "Ô­ÎÄ³¤¶È: " << len1 << " ×Ö·û" << std::endl;
+    report << "´ı¼ì²âÎÄ±¾³¤¶È: " << len2 << " ×Ö·û" << std::endl;
+    report << "×î³¤¹«¹²×ÓĞòÁĞ³¤¶È: " << lcsLength << " ×Ö·û" << std::endl;
+    report << "-------------------" << std::endl;
+    report << "ÏàËÆ¶È¼ÆËã½á¹û: " << std::fixed << std::setprecision(2) << similarity << std::endl;
+    report << "-------------------" << std::endl;
+    
+    // ¸ù¾İÏàËÆ¶ÈÖµÌá¹©²»Í¬µÄ½âÊÍ
+    if (similarity >= 0.9) {
+        report << "·ÖÎö: ÎÄ±¾¸ß¶ÈÏàËÆ£¬¿ÉÄÜ´æÔÚ³­Ï®ĞĞÎª" << std::endl;
+    } else if (similarity >= 0.7) {
+        report << "·ÖÎö: ÎÄ±¾ÏàËÆ¶È½Ï¸ß£¬½¨Òé½øÒ»²½¼ì²é" << std::endl;
+    } else if (similarity >= 0.5) {
+        report << "·ÖÎö: ÎÄ±¾ÓĞ²¿·ÖÏàËÆÄÚÈİ" << std::endl;
+    } else if (similarity >= 0.3) {
+        report << "·ÖÎö: ÎÄ±¾ÏàËÆ¶È½ÏµÍ" << std::endl;
+    } else {
+        report << "·ÖÎö: ÎÄ±¾»ù±¾²»ÏàËÆ" << std::endl;
+    }
+    
+    report << "====================" << std::endl;
+    report << "×¢: ÏàËÆ¶È»ùÓÚ×î³¤¹«¹²×ÓĞòÁĞ(LCS)Ëã·¨¼ÆËã" << std::endl;
+    
+    return report.str();
 }

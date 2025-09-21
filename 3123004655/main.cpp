@@ -1,9 +1,9 @@
 #include "main.h"
 
 int main(int argc, char* argv[]) {
-    // æ£€æŸ¥å‘½ä»¤è¡Œå‚æ•°æ•°é‡
+    // ¼ì²éÃüÁîĞĞ²ÎÊıÊıÁ¿
     if (argc != 4) {
-        std::cerr << "é”™è¯¯: å‚æ•°æ•°é‡ä¸æ­£ç¡®ã€‚" << std::endl;
+        std::cerr << "´íÎó: ²ÎÊıÊıÁ¿²»ÕıÈ·¡£" << std::endl;
         printUsage(argv[0]);
         return 1;
     }
@@ -13,21 +13,35 @@ int main(int argc, char* argv[]) {
     std::string outputFilePath = argv[3];
 
     try {
-        // è¯»å–æ–‡ä»¶å†…å®¹
+        // ¶ÁÈ¡ÎÄ¼şÄÚÈİ
+        std::cout << "ÕıÔÚ¶ÁÈ¡Ô­ÎÄÎÄ¼ş..." << std::endl;
         std::string originalText = readFileContent(originalFilePath);
+        std::cout << "Ô­ÎÄÎÄ¼ş¶ÁÈ¡³É¹¦£¬³¤¶È: " << originalText.length() << " ×Ö·û" << std::endl;
+        
+        std::cout << "ÕıÔÚ¶ÁÈ¡³­Ï®°æÂÛÎÄÎÄ¼ş..." << std::endl;
         std::string plagiarizedText = readFileContent(plagiarizedFilePath);
+        std::cout << "³­Ï®°æÂÛÎÄÎÄ¼ş¶ÁÈ¡³É¹¦£¬³¤¶È: " << plagiarizedText.length() << " ×Ö·û" << std::endl;
         
-        // è®¡ç®—LCSé•¿åº¦
+        // ¼ÆËãLCS³¤¶È
+        std::cout << "ÕıÔÚ¼ÆËã×î³¤¹«¹²×ÓĞòÁĞ..." << std::endl;
         int lcsLen = computeLCSLength(originalText, plagiarizedText);
+        std::cout << "×î³¤¹«¹²×ÓĞòÁĞ³¤¶È: " << lcsLen << " ×Ö·û" << std::endl;
         
-        // è®¡ç®—ç›¸ä¼¼åº¦
+        // ¼ÆËãÏàËÆ¶È
         double similarity = calculateSimilarity(lcsLen, originalText.length(), plagiarizedText.length());
         
-        // å†™å…¥ç»“æœ
+        // Éú³É²¢ÏÔÊ¾ÏêÏ¸±¨¸æ
+        std::string report = generateSimilarityReport(lcsLen, originalText.length(), 
+                                                     plagiarizedText.length(), similarity);
+        std::cout << std::endl << report << std::endl;
+        
+        // Ğ´Èë½á¹û£¨Ö»Ğ´Èë´¿Êı×Ö£¬·ûºÏ²âÊÔÒªÇó£©
+        std::cout << "ÕıÔÚ½«½á¹ûĞ´Èë´ğ°¸ÎÄ¼ş..." << std::endl;
         writeResultToFile(outputFilePath, similarity);
+        std::cout << "½á¹ûÒÑĞ´Èë´ğ°¸ÎÄ¼ş: " << outputFilePath << std::endl;
         
     } catch (const std::exception& e) {
-        std::cerr << "é”™è¯¯: " << e.what() << std::endl;
+        std::cerr << "´íÎó: " << e.what() << std::endl;
         return 1;
     }
 

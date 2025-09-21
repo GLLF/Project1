@@ -23,4 +23,7 @@ void writeResultToFile(const std::string& outputPath, double similarity);
 // 打印程序使用说明
 void printUsage(const char* programName);
 
-#endif 
+// 新增函数：生成详细的相似度报告
+std::string generateSimilarityReport(int lcsLength, int len1, int len2, double similarity);
+
+#endif // PLAGIARISM_CHECKER_H

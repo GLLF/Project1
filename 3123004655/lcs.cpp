@@ -5,7 +5,7 @@ int computeLCSLength(const std::string& text1, const std::string& text2) {
     int n = text2.length();
     
     // 使用二维向量存储DP表
-    std::vector<std::vector<int>> dp(2, std::vector<int>(n + 1, 0));
+    std::vector<std::vector<int>> dp(3, std::vector<int>(n + 1, 0));
     
     // 填充DP表
     for (int i = 1; i <= m; i++) {
@@ -18,5 +18,5 @@ int computeLCSLength(const std::string& text1, const std::string& text2) {
         }
     }
     
-    return dp[m][n];
+    return dp[m%2][n];
 }

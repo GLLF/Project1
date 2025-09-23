@@ -4,7 +4,16 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include <cstdlib>
 #include <cassert>
+
+#ifdef _WIN32
+#include <windows.h>
+#include <direct.h>
+#else
+#include <unistd.h>
+#include <sys/stat.h>
+#endif
 
 // 测试用例结构体
 struct TestCase {
@@ -14,6 +23,8 @@ struct TestCase {
     double expected_min;
     double expected_max;
     std::string description;
+    bool should_pass; // 新增：测试是否应该通过
+    std::vector<std::string> command_args; // 新增：命令行参数
 };
 
 // 测试结果结构体
@@ -24,6 +35,7 @@ struct TestResult {
     double expected_max;
     double actual;
     std::string message;
+    int exit_code; // 新增：退出码
 };
 
 // 创建测试文件
@@ -35,15 +47,49 @@ void createTestFile(const std::string& filename, const std::string& content) {
     }
 }
 
-// 清理测试文件
-void cleanupTestFiles() {
-    remove("test_original.txt");
-    remove("test_plagiarized.txt");
-    remove("test_result.txt");
+// 运行命令行测试
+TestResult runCommandLineTest(const TestCase& testCase) {
+    TestResult result;
+    result.name = testCase.name;
+    result.expected_min = testCase.expected_min;
+    result.expected_max = testCase.expected_max;
+    
+    try {
+        // 构建命令
+        std::string command = "main.exe";
+        for (const auto& arg : testCase.command_args) {
+            command += " " + arg;
+        }
+        
+        // 执行命令并获取退出码
+        int exit_code = std::system(command.c_str());
+        result.exit_code = exit_code;
+        
+        // 检查退出码
+        if (testCase.should_pass) {
+            // 应该通过的测试：退出码为0
+            result.passed = (exit_code == 0);
+            result.message = "退出码: " + std::to_string(exit_code);
+        } else {
+            // 应该失败的测试：退出码非0
+            result.passed = (exit_code != 0);
+            result.message = "退出码: " + std::to_string(exit_code) + " (期望非零)";
+        }
+        
+        result.actual = -1.0; // 命令行测试不计算相似度
+        
+    } catch (const std::exception& e) {
+        result.passed = false;
+        result.actual = -1.0;
+        result.message = "异常 - " + std::string(e.what());
+        result.exit_code = -1;
+    }
+    
+    return result;
 }
 
-// 运行单个测试用例
-TestResult runTestCase(const TestCase& testCase) {
+// 运行正常的功能测试
+TestResult runFunctionalTest(const TestCase& testCase) {
     TestResult result;
     result.name = testCase.name;
     result.expected_min = testCase.expected_min;
@@ -67,22 +113,27 @@ TestResult runTestCase(const TestCase& testCase) {
         // 检查结果是否在预期范围内
         if (result.actual >= testCase.expected_min && result.actual <= testCase.expected_max) {
             result.passed = true;
-            result.message = "通过 - 实际值: " + std::to_string(result.actual);
+            result.message = " 实际值: " + std::to_string(result.actual);
         } else {
             result.passed = false;
-            result.message = "失败 - 期望范围: [" + 
+            result.message = " 期望范围: [" + 
                            std::to_string(testCase.expected_min) + ", " + 
                            std::to_string(testCase.expected_max) + "], 实际值: " + 
                            std::to_string(result.actual);
         }
         
+        result.exit_code = 0;
+        
         // 清理测试文件
-        cleanupTestFiles();
+        remove("test_original.txt");
+        remove("test_plagiarized.txt");
+        remove("test_result.txt");
         
     } catch (const std::exception& e) {
         result.passed = false;
         result.actual = -1.0;
         result.message = "异常 - " + std::string(e.what());
+        result.exit_code = -1;
     }
     
     return result;
@@ -92,25 +143,30 @@ TestResult runTestCase(const TestCase& testCase) {
 void printTestResult(const TestResult& result, int index) {
     std::cout << "测试 " << index << ": " << result.name << " - ";
     if (result.passed) {
-        std::cout << "\033[32m 通过\033[0m";
+        std::cout << "\033[32m 通过 \033[0m";
     } else {
-        std::cout << "\033[31m 失败\033[0m";
+        std::cout << "\033[33m 失败 \033[0m";
     }
-    std::cout << " - " << result.message << std::endl;
+    std::cout << " - " << result.message;
     
-    if (!result.passed && result.actual >= 0) {
-        std::cout << "  描述: " << result.name << std::endl;
+    if (result.exit_code >= 0) {
+        std::cout << " [退出码: " << result.exit_code << "]";
     }
+    
+    std::cout << std::endl;
 }
 
 // 主测试函数
 int main() {
-    std::cout << "开始论文查重系统单元测试..." << std::endl;
+    std::cout << "开始论文查重系统单元测试（包含参数错误测试）..." << std::endl;
     std::cout << "==========================================" << std::endl;
+    
+    // 创建一些基础测试文件
+    createTestFile("original.txt", "这是原文内容。");
+    createTestFile("plagiarized.txt", "这是抄袭版内容。");
     
     // 定义测试用例
     std::vector<TestCase> testCases = {
-        // 样例1：普通长文本（中文）
         {
             "普通长文本（中文）",
             "自然语言处理是人工智能领域中的重要分支，它致力于研究计算机与人类自然语言之间的交互。通过机器学习算法，计算机可以理解、解释和生成人类语言，这在智能客服、机器翻译和情感分析等领域有广泛应用。深度学习技术的发展进一步推动了自然语言处理的进步。",
@@ -216,31 +272,93 @@ int main() {
             "人工智能的演进历史可以回溯到20世纪中期。那时，研究人员开始尝试让机器模仿人类的智能活动。初期的AI研究焦点在于问题求解和符号处理技术。1956年，约翰·麦卡锡在达特茅斯会议上第一次提出\"人工智能\"这个概念，这标志着AI成为一个独立学科。在接下来的几十年中，AI发展经历了多次高潮和低谷。专家系统在1980年代实现了商业上的成功，但由于计算能力和数据规模的限制，AI在1990年代进入了发展缓慢期。直到21世纪初期，随着计算能力的增强和海量数据的可获得性，机器学习尤其是深度学习技术实现了重大突破。2012年，AlexNet在ImageNet比赛中的出色表现吸引了全球目光，开启了深度学习的黄金时代。当前，AI技术已经被广泛运用于图像识别、自然语言理解、自动驾驶等众多领域，深刻改变了社会生产和日常生活模式。展望未来，随着算法的持续改进和计算资源的进一步丰富，人工智能有望在更多行业展现其价值。",
             0.70, 0.80,
             "测试超长文本的相似度计算和性能"
+        },
+        
+        // 新增的参数错误测试用例（13-18）
+        {
+            "参数过少测试",
+            "", "", 0, 0, 
+            "测试命令行参数数量不足的情况",
+            false, // 应该失败
+            {"original.txt"} // 只有一个参数
+        },
+        {
+            "参数过多测试", 
+            "", "", 0, 0,
+            "测试命令行参数数量过多的情况",
+            false, // 应该失败
+            {"original.txt", "plagiarized.txt", "result.txt", "extra_param.txt"}
+        },
+        {
+            "原文文件不存在测试",
+            "", "", 0, 0,
+            "测试原文文件路径不存在的情况", 
+            false, // 应该失败
+            {"non_existent_original.txt", "plagiarized.txt", "result.txt"}
+        },
+        {
+            "抄袭版文件不存在测试",
+            "", "", 0, 0, 
+            "测试抄袭版文件路径不存在的情况",
+            false, // 应该失败
+            {"original.txt", "non_existent_plagiarized.txt", "result.txt"}
+        },
+        {
+            "带空格文件路径测试",
+            "内容A", "内容B", 0.4, 0.6,
+            "测试文件路径包含空格的情况（鲁棒性测试）",
+            true, // 可能通过，取决于实现
+            {"original with space.txt", "plagiarized with space.txt", "result with space.txt"}
         }
     };
+    
+    // 为带空格文件路径测试创建文件
+    createTestFile("original with space.txt", "这是带空格路径的原文。");
+    createTestFile("plagiarized with space.txt", "这是带空格路径的抄袭版。");
     
     // 运行所有测试用例
     int passed = 0;
     int total = testCases.size();
     
     for (size_t i = 0; i < testCases.size(); ++i) {
-        TestResult result = runTestCase(testCases[i]);
+        TestResult result;
+        
+        if (testCases[i].command_args.empty()) {
+            // 功能测试
+            result = runFunctionalTest(testCases[i]);
+        } else {
+            // 命令行测试
+            result = runCommandLineTest(testCases[i]);
+        }
+        
         printTestResult(result, i + 1);
         
         if (result.passed) {
             passed++;
         }
         
+        // 添加间隔，使输出更清晰
+
+        std::cout << std::endl;
+        
     }
+    
+    // 清理测试文件
+    remove("original.txt");
+    remove("plagiarized.txt"); 
+    remove("original with space.txt");
+    remove("plagiarized with space.txt");
+    remove("result with space.txt");
     
     // 输出测试总结
     std::cout << "==========================================" << std::endl;
     std::cout << "测试总结: " << passed << "/" << total << " 通过" << std::endl;
     
     if (passed == total) {
-        std::cout << "\033[32m 所有测试用例通过！\033[0m" << std::endl;
+        std::cout << " 所有测试用例通过！" << std::endl;
     } else {
-        std::cout << "\033[31m 部分测试用例失败！\033[0m" << std::endl;
+        std::cout << " 部分测试用例失败！" << std::endl;
+        
     }
     
     return (passed == total) ? 0 : 1;
